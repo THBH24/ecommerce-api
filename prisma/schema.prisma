@@ -1,0 +1,85 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Bảng Role
+model Role {
+  roleid   Int    @id @default(autoincrement())
+  rolename String @db.VarChar(50)
+  
+  users    User[] // 1 Role có nhiều User
+}
+
+// Bảng MemberShip
+model MemberShip {
+  mid   Int    @id @default(autoincrement())
+  mname String @db.VarChar(50)
+  score Int
+  
+  users User[] // 1 MemberShip có nhiều User
+}
+
+// Bảng User
+model User {
+  uid       Int    @id @default(autoincrement())
+  username  String @db.VarChar(50)
+  fullname  String @db.VarChar(100)
+  password  String @db.VarChar(255)
+  roleid    Int
+  mid       Int
+
+  // Thiết lập khóa ngoại (Foreign Keys)
+  role       Role       @relation(fields: [roleid], references: [roleid])
+  membership MemberShip @relation(fields: [mid], references: [mid])
+  orders     Order[]    // 1 User có nhiều Order
+}
+
+// Bảng Product
+model Product {
+  pid      Int     @id @default(autoincrement())
+  pname    String  @db.VarChar(100)
+  price    Decimal @db.Decimal(10,2)
+  quantity Int
+  
+  orderDetails OrderDetail[]
+}
+
+// Bảng Order
+model Order {
+  oid      Int      @id @default(autoincrement())
+  uid      Int
+  createat DateTime @default(now())
+
+  user         User          @relation(fields: [uid], references: [uid])
+  shipments    Shipment[]
+  orderDetails OrderDetail[]
+}
+
+// Bảng OrderDetail (Bảng trung gian n-n có khóa chính kép)
+model OrderDetail {
+  oid        Int
+  pid        Int
+  qty        Int
+  unit_price Decimal @db.Decimal(10,2)
+
+  order   Order   @relation(fields: [oid], references: [oid])
+  product Product @relation(fields: [pid], references: [pid])
+
+  // Khai báo khóa chính kép (Composite Primary Key)
+  @@id([oid, pid])
+}
+
+// Bảng Shipment
+model Shipment {
+  shipid Int    @id @default(autoincrement())
+  oid    Int
+  status String @db.VarChar(50)
+  
+  order Order @relation(fields: [oid], references: [oid])
+}

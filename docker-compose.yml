@@ -1,0 +1,35 @@
+services:
+  postgres_db:
+    image: postgres:15
+    container_name: ecommerce_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+      POSTGRES_DB: ecommercedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d ecommercedb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ecommerce_api:
+    build: .
+    container_name: ecommerce_api_container
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - DATABASE_URL=postgresql://admin:adminpassword@postgres_db:5432/ecommercedb?schema=public
+      - JWT_SECRET=super_secret_jwt_key_ecommerce_mvp_2026
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
